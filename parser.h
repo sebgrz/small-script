@@ -51,6 +51,24 @@ Node *createNode(NodeType type)
     return node;
 }
 
+void freeNode(Node *node)
+{
+    if (node->stringValue != NULL)
+    {
+        free(node->stringValue);
+    }
+
+    if (node->blocks != NULL)
+    {
+        for (int i = 0; i < arrlen(node->blocks); i++)
+        {
+            Node innerNode = node->blocks[i];
+            freeNode(&innerNode);
+        }
+        arrfree(node->blocks);
+    }
+}
+
 bool expectToken(int length, ...)
 {
     va_list expectedTokenTypes;
