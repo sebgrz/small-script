@@ -98,7 +98,7 @@ Token getToken()
 
 Node *parseLabelBlockStatement()
 {
-    Node *statements = NULL;
+    Node *statements = createNode(N_LABEL_STATEMENT);
     for (;;)
     {
         if (expectToken(1, T_Variable))
@@ -125,16 +125,32 @@ Node *parse()
 {
     Node *nodes = NULL;
 
-    // label statement
     if (expectToken(T_Label))
     {
         Node *label = parseLabelBlockStatement();
         if (!expectToken(1, T_End))
         {
-            printf("expect T_End of label");
+            freeNode(label);
+            if (nodes != NULL)
+            {
+                for (int i = 0; i < arrlen(nodes); i++)
+                {
+                    freeNode(&nodes[i]);
+                }
+            }
+            printf("WRONG TOKEN: expect T_End of label\n");
             exit(EXIT_FAILURE);
         }
         arrput(nodes, label);
+    }
+    else if (expectToken(1, T_EOF))
+    {
+        return nodes;
+    }
+    else
+    {
+        printf("WRONG TOKEN: expect T_Label | T_EOF\n");
+        exit(EXIT_FAILURE);
     }
 }
 
