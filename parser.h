@@ -92,11 +92,21 @@ bool expectToken(int length, ...)
 
 char *getTokenValue(Token *token)
 {
-    char *value = malloc(token->length + 1);
+    char *value = (char *)malloc(token->length + 1);
     *(value + token->length) = '\0';
 
     strncpy(value, *script.code + token->start, token->length);
     return value;
+}
+
+char *memString(const char *value)
+{
+    int len = strlen(value);
+    char *newValue = (char *)malloc(len + 1);
+    *(newValue + len) = '\0';
+
+    strncpy(newValue, value, len);
+    return newValue;
 }
 
 bool expectNextToken(int length, ...)
@@ -133,6 +143,60 @@ Token getToken()
 
 Node *parseExpr()
 {
+    Node *binaryNode = NULL;
+    for (;;)
+    {
+        Token token = getToken();
+        switch (token.type)
+        {
+        case T_Variable:
+        case T_Number: {
+            // TODO if binaryNode != NULL
+            if (expectToken(5, T_EndExpr, T_Minus, T_Plus, T_Asteriks, T_Slash))
+            {
+            }
+            else if (expectToken(1, T_Eq) && expectNextToken(1, T_Eq))
+            {
+                getToken(); // burn the second T_Eq
+                binaryNode = createNode(N_BINARY);
+
+                Node *leftNode = createNode(token.type == T_Variable ? N_VARIABLE : N_NUMBER);
+                if (token.type == T_Variable)
+                {
+                    leftNode->stringValue = getTokenValue(&token) + 1;
+                }
+                else
+                {
+                    leftNode->numberValue = atoi(getTokenValue(&token));
+                }
+                Node *operatorNode = createNode(N_OPERATOR);
+                operatorNode->stringValue = memString("==");
+
+                arrput(binaryNode->blocks, *leftNode);
+                arrput(binaryNode->blocks, *operatorNode);
+
+                if (!expectNextToken(2, T_Variable, T_Number))
+                {
+                    token = getToken();
+                    printf("parseExpr unexpected next token type: %d for '=='\n", token.type);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else
+            {
+                token = getToken();
+                printf("parseExpr unexpected next token type: %d for T_Variable, T_Number\n", token.type);
+                exit(EXIT_FAILURE);
+            }
+
+            break;
+        }
+        case T_String:
+        default:
+            printf("parseExpr unexpected token type: %d\n", token.type);
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 Node *parseVariableExpr()
