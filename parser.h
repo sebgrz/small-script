@@ -37,6 +37,7 @@ typedef struct Node
     enum NodeType type;
     struct Node *blocks;
     union {
+        bool boolValue;
         int numberValue;
         char *stringValue;
     };
@@ -48,6 +49,15 @@ Node *createNode(NodeType type)
     node->type = type;
     node->blocks = NULL;
 
+    return node;
+}
+
+Node *createBinaryNode(Node leftNode, Node operatorNode, Node rightNode)
+{
+    Node *node = createNode(N_BINARY);
+    arrput(node->blocks, leftNode); // left
+    arrput(node->blocks, operatorNode);
+    arrput(node->blocks, rightNode); // right
     return node;
 }
 
@@ -92,11 +102,21 @@ bool expectToken(int length, ...)
 
 char *getTokenValue(Token *token)
 {
-    char *value = malloc(token->length + 1);
+    char *value = (char *)malloc(token->length + 1);
     *(value + token->length) = '\0';
 
     strncpy(value, *script.code + token->start, token->length);
     return value;
+}
+
+char *memString(const char *value)
+{
+    int len = strlen(value);
+    char *newValue = (char *)malloc(len + 1);
+    *(newValue + len) = '\0';
+
+    strncpy(newValue, value, len);
+    return newValue;
 }
 
 bool expectNextToken(int length, ...)
@@ -131,8 +151,143 @@ Token getToken()
     return tokens[tokenIndex];
 }
 
-Node *parseExpr()
+Node *parsePrimary()
 {
+    if (expectToken(3, T_Variable, T_Number, T_String))
+    {
+        Token token = getToken();
+        Node *primaryNode = createNode(token.type == T_Variable ? N_VARIABLE
+                                       : token.type == T_String ? N_STRING
+                                                                : N_NUMBER);
+        if (token.type == T_Variable || token.type == T_String)
+        {
+            primaryNode->stringValue = getTokenValue(&token) + 1;
+        }
+        else
+        {
+            primaryNode->numberValue = atoi(getTokenValue(&token));
+        }
+
+        return primaryNode;
+    }
+    else if (expectToken(2, T_True, T_False))
+    {
+        Token token = getToken();
+        Node *primaryNode = createNode(N_BOOL);
+        primaryNode->boolValue = token.type == T_True;
+
+        return primaryNode;
+    }
+
+    printf("parsePrimary: expect T_Variable, T_Number, T_String, T_True, T_False\n");
+    exit(EXIT_FAILURE);
+}
+
+Node *parseFactor()
+{
+    Node *expr = parsePrimary();
+    while (expectToken(2, T_Slash, T_Asterisk))
+    {
+        Token operatorToken = getToken();
+        Node *operatorNode = createNode(N_OPERATOR);
+        operatorNode->stringValue = operatorToken.type == T_Slash ? memString("/") : memString("*");
+
+        Node *binaryNode = createBinaryNode(*expr, *operatorNode, *parsePrimary());
+        expr = binaryNode;
+    }
+
+    return expr;
+}
+
+Node *parseTerm()
+{
+    Node *expr = parseFactor();
+    while (expectToken(2, T_Minus, T_Plus))
+    {
+        Token operatorToken = getToken();
+        Node *operatorNode = createNode(N_OPERATOR);
+        operatorNode->stringValue = operatorToken.type == T_Minus ? memString("-") : memString("+");
+
+        Node *binaryNode = createBinaryNode(*expr, *operatorNode, *parseFactor());
+        expr = binaryNode;
+    }
+
+    return expr;
+}
+
+Node *parseComparison()
+{
+    Node *expr = parseTerm();
+    while (expectToken(2, T_Gt, T_Lt))
+    {
+        Token operatorToken = getToken();
+        Node *operatorNode = createNode(N_OPERATOR);
+        if (expectToken(1, T_Eq))
+        {
+            getToken(); // burn T_Eg token
+            operatorNode->stringValue = operatorToken.type == T_Gt ? memString(">=") : memString("<=");
+        }
+        else
+        {
+            operatorNode->stringValue = operatorToken.type == T_Gt ? memString(">") : memString("<");
+        }
+
+        Node *binaryNode = createBinaryNode(*expr, *operatorNode, *parseTerm());
+        expr = binaryNode;
+    }
+
+    return expr;
+}
+
+Node *parseEqual()
+{
+    Node *expr = parseComparison();
+    while (expectToken(1, T_Eq) && expectNextToken(1, T_Eq))
+    {
+        getToken();
+        getToken();
+        Node *operatorNode = createNode(N_OPERATOR);
+        operatorNode->stringValue = memString("==");
+
+        Node *binaryNode = createBinaryNode(*expr, *operatorNode, *parseComparison());
+        expr = binaryNode;
+    }
+
+    return expr;
+}
+
+Node *parseAnd()
+{
+    Node *expr = parseEqual();
+    while (expectToken(1, T_Ampersand) && expectNextToken(1, T_Ampersand))
+    {
+        getToken();
+        getToken();
+        Node *operatorNode = createNode(N_OPERATOR);
+        operatorNode->stringValue = memString("&&");
+
+        Node *binaryNode = createBinaryNode(*expr, *operatorNode, *parseEqual());
+        expr = binaryNode;
+    }
+
+    return expr;
+}
+
+Node *parseOr()
+{
+    Node *expr = parseAnd();
+    while (expectToken(1, T_VerBar) && expectNextToken(1, T_VerBar))
+    {
+        getToken();
+        getToken();
+        Node *operatorNode = createNode(N_OPERATOR);
+        operatorNode->stringValue = memString("||");
+
+        Node *binaryNode = createBinaryNode(*expr, *operatorNode, *parseAnd());
+        expr = binaryNode;
+    }
+
+    return expr;
 }
 
 Node *parseVariableExpr()
@@ -170,7 +325,8 @@ Node *parseVariableExpr()
         break;
     }
     case T_Eq: {
-        Node *exprNode = parseExpr();
+        Node *exprNode = parseOr();
+        // TODO: find T_EndExpr;
         arrput(varNode->blocks, *exprNode);
         break;
     }
