@@ -18,7 +18,7 @@ typedef struct S_Script
 
 typedef enum TokenType
 {
-    T_None,
+    T_None, // - 0
 
     T_Switch,     // switch
     T_Default,    // default
@@ -29,18 +29,18 @@ typedef enum TokenType
     T_Gt,         // >
     T_Lt,         // <
     T_Plus,       // +
-    T_Minus,      // -
+    T_Minus,      // - - 10
     T_Asterisk,   // *
     T_Slash,      // /
     T_Ampersand,  // &
     T_VerBar,     // |
 
-    T_Label,    // label:
+    T_Label,    // label: - 15
     T_Variable, // :var
     T_End,      // end
     T_True,     // true
     T_False,    // false
-    T_Literal,
+    T_Literal, // - 20
 
     T_BoolVar,   // bool
     T_StringVar, // string

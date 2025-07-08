@@ -18,10 +18,14 @@ typedef enum NodeType
     N_ASSIGNMENT_EXPRESSION,
     N_BINARY,
 
+    N_VALUE_NUMBER,
+    N_VALUE_STRING,
+    N_VALUE_BOOL,
+
     N_VARIABLE,
-    N_NUMBER,
-    N_STRING,
-    N_BOOL,
+    N_NUMBER_VAR,
+    N_STRING_VAR,
+    N_BOOL_VAR,
 
     N_OPERATOR,
 
@@ -142,13 +146,10 @@ bool expectNextToken(int length, ...)
 
 Token getToken()
 {
+    Token token = tokens[tokenIndex];
     tokenIndex++;
-    if (tokenIndex >= arrlen(tokens))
-    {
-        printf("tokenIndex >= arrlen(tokens)\n");
-        exit(EXIT_FAILURE);
-    }
-    return tokens[tokenIndex];
+
+    return token;
 }
 
 Node *parsePrimary()
@@ -157,8 +158,8 @@ Node *parsePrimary()
     {
         Token token = getToken();
         Node *primaryNode = createNode(token.type == T_Variable ? N_VARIABLE
-                                       : token.type == T_String ? N_STRING
-                                                                : N_NUMBER);
+                                       : token.type == T_String ? N_VALUE_STRING
+                                                                : N_VALUE_NUMBER);
         if (token.type == T_Variable || token.type == T_String)
         {
             primaryNode->stringValue = getTokenValue(&token) + 1;
@@ -173,7 +174,7 @@ Node *parsePrimary()
     else if (expectToken(2, T_True, T_False))
     {
         Token token = getToken();
-        Node *primaryNode = createNode(N_BOOL);
+        Node *primaryNode = createNode(N_VALUE_BOOL);
         primaryNode->boolValue = token.type == T_True;
 
         return primaryNode;
@@ -306,17 +307,18 @@ Node *parseVariableExpr()
     switch (variableToken.type)
     {
     case T_BoolVar:
-        varNode = createNode(N_BOOL);
+        varNode = createNode(N_BOOL_VAR);
         break;
     case T_StringVar:
-        varNode = createNode(N_STRING);
+        varNode = createNode(N_STRING_VAR);
         break;
     case T_NumberVar:
-        varNode = createNode(N_NUMBER);
+        varNode = createNode(N_NUMBER_VAR);
         break;
     default:
         return NULL;
     }
+    varNode->stringValue = variableName;
 
     Token nextToken = getToken();
     switch (nextToken.type)
@@ -394,6 +396,65 @@ Node *parse()
     {
         printf("WRONG TOKEN: expect T_Label | T_EOF\n");
         exit(EXIT_FAILURE);
+    }
+}
+
+void init(S_Script newScript, Token *newTokens)
+{
+    script = newScript;
+    tokens = newTokens;
+    tokenIndex = 0;
+}
+
+char *printNode(Node *node, int level)
+{
+    printf("%*s", level * 2, "");
+    switch (node->type)
+    {
+    case N_LABEL_STATEMENT:
+        break;
+    case N_LABEL_END:
+        break;
+    case N_SWITCH_STATEMENT:
+        break;
+    case N_SWITCH_END:
+        break;
+    case N_ASSIGNMENT_EXPRESSION:
+        break;
+    case N_BINARY:
+        printf("BINARY:\n");
+        printNode(&node->blocks[0], level + 1);
+        printf("%*s", level * 2, "");
+        printf("OP: %s\n", node->blocks[1].stringValue);
+        printNode(&node->blocks[2], level + 1);
+        break;
+    case N_VARIABLE:
+        break;
+    case N_STRING_VAR:
+        printf("STRING_VAR '%s'\n", node->stringValue);
+        printNode(&node->blocks[0], level + 1);
+        break;
+    case N_NUMBER_VAR:
+        printf("NUMBER_VAR '%s'\n", node->stringValue);
+        printNode(&node->blocks[0], level + 1);
+        break;
+    case N_BOOL_VAR:
+        printf("BOOL_VAR '%s'\n", node->stringValue);
+        printNode(&node->blocks[0], level + 1);
+        break;
+    case N_VALUE_NUMBER:
+        printf("NUMBER: '%d'\n", node->numberValue);
+        break;
+    case N_VALUE_STRING:
+        printf("STRING: %s\n", node->stringValue);
+        break;
+    case N_VALUE_BOOL:
+        printf("BOOL %d\n", node->boolValue);
+        break;
+    case N_OPERATOR:
+        break;
+    case N_EOF:
+        break;
     }
 }
 
