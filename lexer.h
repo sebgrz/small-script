@@ -40,7 +40,7 @@ typedef enum TokenType
     T_End,      // end
     T_True,     // true
     T_False,    // false
-    T_Literal, // - 20
+    T_Literal,  // - 20
 
     T_BoolVar,   // bool
     T_StringVar, // string
