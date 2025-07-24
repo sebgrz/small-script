@@ -15,7 +15,6 @@ typedef enum NodeType
     N_SWITCH_STATEMENT,
     N_SWITCH_END,
 
-    N_ASSIGNMENT_EXPRESSION,
     N_BINARY,
 
     N_VALUE_NUMBER,
@@ -162,7 +161,7 @@ Node *parsePrimary()
                                                                 : N_VALUE_NUMBER);
         if (token.type == T_Variable || token.type == T_String)
         {
-            primaryNode->stringValue = getTokenValue(&token) + 1;
+            primaryNode->stringValue = getTokenValue(&token);
         }
         else
         {
@@ -328,7 +327,6 @@ Node *parseVariableExpr()
     }
     case T_Eq: {
         Node *exprNode = parseOr();
-        // TODO: find T_EndExpr;
         arrput(varNode->blocks, *exprNode);
         break;
     }
@@ -406,9 +404,9 @@ void init(S_Script newScript, Token *newTokens)
     tokenIndex = 0;
 }
 
-char *printNode(Node *node, int level)
+char *printNodeToPtr(char **outPtr, Node *node, int level)
 {
-    printf("%*s", level * 2, "");
+    asprintf(outPtr, "%s%*s", *outPtr, level * 2, "");
     switch (node->type)
     {
     case N_LABEL_STATEMENT:
@@ -419,37 +417,36 @@ char *printNode(Node *node, int level)
         break;
     case N_SWITCH_END:
         break;
-    case N_ASSIGNMENT_EXPRESSION:
-        break;
     case N_BINARY:
-        printf("BINARY:\n");
-        printNode(&node->blocks[0], level + 1);
-        printf("%*s", level * 2, "");
-        printf("OP: %s\n", node->blocks[1].stringValue);
-        printNode(&node->blocks[2], level + 1);
+        asprintf(outPtr, "%sBINARY:\n", *outPtr);
+        printNodeToPtr(outPtr, &node->blocks[0], level + 1);
+        asprintf(outPtr, "%s%*s", *outPtr, (level + 1) * 2, "");
+        asprintf(outPtr, "%sOP: %s\n", *outPtr, node->blocks[1].stringValue);
+        printNodeToPtr(outPtr, &node->blocks[2], level + 1);
         break;
     case N_VARIABLE:
+        asprintf(outPtr, "%sVAR: '%s'\n", *outPtr, node->stringValue);
         break;
     case N_STRING_VAR:
-        printf("STRING_VAR '%s'\n", node->stringValue);
-        printNode(&node->blocks[0], level + 1);
+        asprintf(outPtr, "%sSTRING_VAR '%s'\n", *outPtr, node->stringValue);
+        printNodeToPtr(outPtr, &node->blocks[0], level + 1);
         break;
     case N_NUMBER_VAR:
-        printf("NUMBER_VAR '%s'\n", node->stringValue);
-        printNode(&node->blocks[0], level + 1);
+        asprintf(outPtr, "%sNUMBER_VAR '%s'\n", *outPtr, node->stringValue);
+        printNodeToPtr(outPtr, &node->blocks[0], level + 1);
         break;
     case N_BOOL_VAR:
-        printf("BOOL_VAR '%s'\n", node->stringValue);
-        printNode(&node->blocks[0], level + 1);
+        asprintf(outPtr, "%sBOOL_VAR '%s'\n", *outPtr, node->stringValue);
+        printNodeToPtr(outPtr, &node->blocks[0], level + 1);
         break;
     case N_VALUE_NUMBER:
-        printf("NUMBER: '%d'\n", node->numberValue);
+        asprintf(outPtr, "%sNUMBER: '%d'\n", *outPtr, node->numberValue);
         break;
     case N_VALUE_STRING:
-        printf("STRING: %s\n", node->stringValue);
+        asprintf(outPtr, "%sSTRING: %s\n", *outPtr, node->stringValue);
         break;
     case N_VALUE_BOOL:
-        printf("BOOL %d\n", node->boolValue);
+        asprintf(outPtr, "%sBOOL %d\n", *outPtr, node->boolValue);
         break;
     case N_OPERATOR:
         break;

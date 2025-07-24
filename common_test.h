@@ -28,8 +28,35 @@ description:\
   end\
 ";
 
-char *TEST_SIMPLE_VARIABLE_EXPRESSION = "\
+char *TEST_SIMPLE_VARIABLE_EXPRESSION_1 = "\
 number calculation = 10 + :number * 5;\
+";
+
+char *TEST_SIMPLE_VARIABLE_EXPRESSION_2 = "\
+number calculation = 10 + :number * 5 - 1;\
+";
+
+char *EXPECTED_SIMPLE_VARIABLE_EXPRESSION_RESULT_1 = "NUMBER_VAR 'calculation'\n\
+  BINARY:\n\
+    NUMBER: '10'\n\
+    OP: +\n\
+    BINARY:\n\
+      VAR: 'number'\n\
+      OP: *\n\
+      NUMBER: '0'\n\
+";
+
+char *EXPECTED_SIMPLE_VARIABLE_EXPRESSION_RESULT_2 = "NUMBER_VAR 'calculation'\n\
+  BINARY:\n\
+    BINARY:\n\
+      NUMBER: '10'\n\
+      OP: +\n\
+      BINARY:\n\
+        VAR: 'number'\n\
+        OP: *\n\
+        NUMBER: '0'\n\
+    OP: -\n\
+    NUMBER: '0'\n\
 ";
 
 #endif

@@ -26,7 +26,7 @@ static void test_lexerHappyPath()
 
 static void test_lexerSimpleVariableExpression()
 {
-    S_Script script = {.code = &TEST_SIMPLE_VARIABLE_EXPRESSION};
+    S_Script script = {.code = &TEST_SIMPLE_VARIABLE_EXPRESSION_1};
     char *error_msg = NULL;
     Token *tokens = lexer(&script, &error_msg);
 
